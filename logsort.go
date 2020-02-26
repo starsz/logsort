@@ -1,3 +1,21 @@
+/*
+Package logsort provides a method to sort log file by timestamp.
+
+Example:
+
+    srcFile := "disorder.log"
+	dstFile := "order.log"
+    getTime := func(line []byte) (int64, logmerge.Action, error) {
+        tm, err := time.Parse("20060102150405", string(line[:14]))
+        if err != nil {
+            return 0, logmerge.SKIP, nil
+        }
+
+        return tm.Unix(), logmerge.NOP, nil
+    }
+
+    err := logMerge.Sort(srcFile, dstFile, getTime)
+*/
 package logsort
 
 import (
@@ -8,17 +26,28 @@ import (
 	"sort"
 )
 
+// Action defined the read line behaviour.
 type Action int
 
 const (
+	// NOP: no extra optioin
 	NOP = iota
+	// SKIP: skip this line
 	SKIP
+	// STOP: stop file merging
 	STOP
 )
 
+/*
+	TimeHandler defined handlers for getting timestamp from each line.
+*/
+type TimeHandler = func([]byte) (int64, Action, error)
+
 var (
+	// ErrNeedTimeHandler returned when the getTime function is nil.
 	ErrNeedTimeHandler = errors.New("logsort: need time handler")
-	ErrSameSRCAndDST   = errors.New("logsort: same src file and dst file")
+	// ErrSameSRCAndDST returned when the srcfile is same as dstfile.
+	ErrSameSRCAndDST = errors.New("logsort: same src file and dst file")
 )
 
 type lineUnit struct {
@@ -27,15 +56,16 @@ type lineUnit struct {
 	timestamp int64
 }
 
+/*
+	Option defined some option can set for sorting.
+*/
 type Option struct {
-	SrcFile string
-	DstFile string
-	SrcGzip bool
-	DstGzip bool
-	GetTime TimeHandler
+	SrcFile string      // Need sort file path
+	DstFile string      // The output file path
+	SrcGzip bool        // Whether src file is in gzip format
+	DstGzip bool        // Output file in gzip format
+	GetTime TimeHandler // The function to getTime from each line
 }
-
-type TimeHandler = func([]byte) (int64, Action, error)
 
 type linesSort []*lineUnit
 
@@ -45,6 +75,23 @@ func (l linesSort) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 
 func (l linesSort) Less(i, j int) bool { return l[i].timestamp < l[j].timestamp }
 
+/*
+	Sort src file, and output to dst file.
+	Use getTime function to get timestamp.
+*/
+func Sort(srcFile, dstFile string, getTime TimeHandler) error {
+	option := Option{
+		SrcFile: srcFile,
+		DstFile: dstFile,
+		GetTime: getTime,
+	}
+
+	return SortByOption(option)
+}
+
+/*
+	Use option to control sort behaviour.
+*/
 func SortByOption(option Option) error {
 	if option.GetTime == nil {
 		return ErrNeedTimeHandler
@@ -144,14 +191,4 @@ func SortByOption(option Option) error {
 	}
 
 	return nil
-}
-
-func Sort(srcFile, dstFile string, getTime TimeHandler) error {
-	option := Option{
-		SrcFile: srcFile,
-		DstFile: dstFile,
-		GetTime: getTime,
-	}
-
-	return SortByOption(option)
 }
