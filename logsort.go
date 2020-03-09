@@ -54,6 +54,7 @@ type lineUnit struct {
 	offset    int64
 	length    int
 	timestamp int64
+	content   []byte
 }
 
 /*
@@ -62,7 +63,7 @@ type lineUnit struct {
 type Option struct {
 	SrcFile string      // Need sort file path
 	DstFile string      // The output file path
-	SrcGzip bool        // Whether src file is in gzip format
+	SrcGzip bool        // if srcGzip, logsort will read whole file into RAM
 	DstGzip bool        // Output file in gzip format
 	GetTime TimeHandler // The function to getTime from each line
 }
@@ -91,6 +92,7 @@ func Sort(srcFile, dstFile string, getTime TimeHandler) error {
 
 /*
 	Use option to control sort behaviour.
+	Be careful of using srcGzip, because logsort will read whole file into RAM.
 */
 func SortByOption(option Option) error {
 	if option.GetTime == nil {
@@ -150,6 +152,10 @@ func SortByOption(option Option) error {
 			timestamp: tm,
 		}
 
+		if option.SrcGzip {
+			l.content = line
+		}
+
 		// +1 for "\n"
 		offset += int64(len(line)) + 1
 		lines = append(lines, l)
@@ -176,9 +182,15 @@ func SortByOption(option Option) error {
 	}
 
 	for _, l := range lines {
-		line := make([]byte, l.length+1)
-		if _, err := srcFd.ReadAt(line, l.offset); err != nil {
-			return err
+		var line []byte
+
+		if l.content != nil {
+			line = append(l.content, '\n')
+		} else {
+			line = make([]byte, l.length+1)
+			if _, err := srcFd.ReadAt(line, l.offset); err != nil {
+				return err
+			}
 		}
 
 		if _, err := writer.Write(line); err != nil {
