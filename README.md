@@ -20,7 +20,7 @@ First, define the getTime handler or use TimeStartHandler in library.
 
 
 ```go
-func getTime([]byte) (int64, logmerge.Action, error) {
+func getTime([]byte) (int64, logsort.Action, error) {
             // do parse time in this
 }
 ```
@@ -30,9 +30,9 @@ Second, start to merge.
 ```go
 srcFile := "./testdata/base1.log"
 dstFile := "./testdata/output.log"
-getTime := logmerge.TimeStartHandler("2006/01/02 15:04:05")
+getTime := logsort.TimeStartHandler("2006/01/02 15:04:05")
 
-err := logmerge.Sort(srcFile, dstFile, getTime)
+err := logsort.Sort(srcFile, dstFile, getTime)
 ```
 
 Example
