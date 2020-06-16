@@ -21,9 +21,10 @@ package logsort
 import (
 	"bufio"
 	"compress/gzip"
-	"errors"
 	"os"
 	"sort"
+
+	"github.com/pkg/errors"
 )
 
 // Action defined the read line behaviour.
@@ -116,7 +117,7 @@ func SortByOption(option Option) error {
 	if option.SrcGzip {
 		gzFd, err := gzip.NewReader(srcFd)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "new reader")
 		}
 
 		defer gzFd.Close()
@@ -130,7 +131,7 @@ func SortByOption(option Option) error {
 	for {
 		if ok := scanner.Scan(); !ok {
 			if err = scanner.Err(); err != nil {
-				return err
+				return errors.Wrap(err, "scanner err")
 			}
 
 			// EOF
@@ -189,16 +190,16 @@ func SortByOption(option Option) error {
 		} else {
 			line = make([]byte, l.length+1)
 			if _, err := srcFd.ReadAt(line, l.offset); err != nil {
-				return err
+				return errors.Wrapf(err, "fd %s read offset %d", option.SrcFile, l.offset)
 			}
 		}
 
 		if _, err := writer.Write(line); err != nil {
-			return err
+			return errors.Wrap(err, "writer write")
 		}
 
 		if err = writer.Flush(); err != nil {
-			return err
+			return errors.Wrap(err, "writer flush")
 		}
 	}
 
