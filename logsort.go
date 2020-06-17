@@ -195,11 +195,11 @@ func SortByOption(option Option) error {
 		}
 
 		if _, err := writer.Write(line); err != nil {
-			return errors.Wrap(err, "writer write")
+			return errors.Wrapf(err, "writer %s write", option.SrcFile)
 		}
 
 		if err = writer.Flush(); err != nil {
-			return errors.Wrap(err, "writer flush")
+			return errors.Wrapf(err, "writer %s flush", option.SrcFile)
 		}
 	}
 
