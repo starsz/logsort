@@ -154,7 +154,8 @@ func SortByOption(option Option) error {
 		}
 
 		if option.SrcGzip {
-			l.content = line
+			temp := string(line)
+			l.content = []byte(temp)
 		}
 
 		// +1 for "\n"
